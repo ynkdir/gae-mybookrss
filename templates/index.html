@@ -45,7 +45,16 @@ saved!
 </div>
 {% endif %}
 {% if request.GET.name %}
-<a href="{{request.host_url}}/rss/{{request.GET.name|escape}}">{{request.host_url}}/rss/{{request.GET.name|escape}}</a>
+  {% if rssitem %}
+    <a href="{{request.host_url}}/rss/{{request.GET.name|escape}}">{{request.host_url}}/rss/{{request.GET.name|escape}}</a>
+  {% else %}
+    <ul class="errorlist">
+      <li>
+        "{{request.GET.name|escape}}" is not found.
+        You can create it.
+      </li>
+    </ul>
+  {% endif %}
 {% endif %}
 <form id="rssform" method="POST" action="/">
   <table>
@@ -81,11 +90,11 @@ saved!
     <th>Notify before:</th>
     <td>
       <select name="days">
-        <option value="1" {% ifequal form.data.days "1" %}selected="selected"{% endifequal %}>1 days</option>
-        <option value="2" {% ifequal form.data.days "2" %}selected="selected"{% endifequal %}>2 days</option>
-        <option value="3" {% ifequal form.data.days "3" %}selected="selected"{% endifequal %}>3 days</option>
-        <option value="7" {% ifequal form.data.days "7" %}selected="selected"{% endifequal %}>7 days</option>
-        <option value="30" {% ifequal form.data.days "30" %}selected="selected"{% endifequal %}>30 days</option>
+        <option value="1" {% ifequal form.data.days 1 %}selected="selected"{% endifequal %}>1 days</option>
+        <option value="2" {% ifequal form.data.days 2 %}selected="selected"{% endifequal %}>2 days</option>
+        <option value="3" {% ifequal form.data.days 3 %}selected="selected"{% endifequal %}>3 days</option>
+        <option value="7" {% ifequal form.data.days 7 %}selected="selected"{% endifequal %}>7 days</option>
+        <option value="30" {% ifequal form.data.days 30 %}selected="selected"{% endifequal %}>30 days</option>
       </select>
     </td>
   </tr>

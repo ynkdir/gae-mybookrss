@@ -130,6 +130,7 @@ class AIndex(ABase):
     def get(self):
         name = self.request.get("name", None)
         form = RssForm(self.request.GET)
+        rssitem = None
         if name is not None:
             rssitem = RssItem.get_by_key_name(name)
             if rssitem is not None:
@@ -137,12 +138,13 @@ class AIndex(ABase):
                     "name": rssitem.name,
                     "title": rssitem.title,
                     "locale": rssitem.locale,
-                    "days": str(rssitem.days),
+                    "days": rssitem.days,
                     "keywords": rssitem.keywords,
                 })
         template_values = {
             'request': self.request,
             'form': form,
+            'rssitem': rssitem,
         }
         self.response.out.write(render("index.html", template_values))
 
