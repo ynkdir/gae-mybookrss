@@ -84,6 +84,54 @@ def item_search_page(locale, params):
     return root
 
 
+def search(keywords, locale, days):
+    keywords = " or ".join('"%s"' % word
+            for word in parse_keywords(keywords))
+    utcnow = datetime.datetime.utcnow()
+    now = utcnow + LOCALE_UTC_OFFSET[locale]
+    limit_date = now + datetime.timedelta(days=days)
+    power = u"pubdate: after %s and keywords: %s" % (lastmonth(now), keywords)
+    items = []
+    for item in item_search(locale=locale,
+                            SearchIndex='Books',
+                            Power=power.encode("utf-8"),
+                            Sort='daterank',
+                            ResponseGroup='Medium'):
+        # ignore collection item
+        if item.find('ItemAttributes/ISBN') is None:
+            continue
+        (release_date_obj, release_date) = get_release_date(item)
+        if release_date is None:
+            continue
+        if release_date_obj.date() <= limit_date.date():
+            items.append({
+                'release_date': release_date,
+                'title': item.findtext('ItemAttributes/Title'),
+                'author': '/'.join(attr.text
+                    for attr in item.findall('ItemAttributes/Author')),
+            })
+    return items
+
+
+def lastmonth(now):
+    m = now.replace(day=1) - datetime.timedelta(days=1)
+    return m.strftime("%m-%Y")
+
+
+def get_release_date(item):
+    release_date = item.findtext('ItemAttributes/ReleaseDate')
+    if release_date is None:
+        release_date = item.findtext('ItemAttributes/PublicationDate')
+    for date_format in ["%Y-%m-%d", "%Y-%m"]:
+        try:
+            obj = datetime.datetime.strptime(release_date, date_format)
+        except ValueError:
+            pass
+        else:
+            return (obj, release_date)
+    return (None, None)
+
+
 def parse_keywords(keywords):
     words = []
     for word in keywords.splitlines():
@@ -138,7 +186,7 @@ class AIndex(ABase):
                     "name": rssitem.name,
                     "title": rssitem.title,
                     "locale": rssitem.locale,
-                    "days": rssitem.days,
+                    "days": str(rssitem.days),
                     "keywords": rssitem.keywords,
                 })
         template_values = {
@@ -192,7 +240,7 @@ class ARss(ABase):
             return
         # touch lastaccess
         rssitem.put()
-        items = self._search(rssitem.keywords, rssitem.locale, rssitem.days)
+        items = search(rssitem.keywords, rssitem.locale, rssitem.days)
         template_values = {
             "request": self.request,
             "rssitem": rssitem,
@@ -201,56 +249,37 @@ class ARss(ABase):
         self.response.headers["content-type"] = "application/atom+xml"
         self.response.out.write(render("atom1.xml", template_values))
 
-    def _search(self, keywords, locale, days):
-        keywords = " or ".join('"%s"' % word
-                for word in parse_keywords(keywords))
-        utcnow = datetime.datetime.utcnow()
-        now = utcnow + LOCALE_UTC_OFFSET[locale]
-        limit_date = now + datetime.timedelta(days=days)
-        lastmonth = self._lastmonth(now)
-        power = u"pubdate: after %s and keywords: %s" % (lastmonth, keywords)
-        items = []
-        for item in item_search(locale=locale,
-                                SearchIndex='Books',
-                                Power=power.encode("utf-8"),
-                                Sort='daterank',
-                                ResponseGroup='Medium'):
-            # ignore collection item
-            if item.find('ItemAttributes/ISBN') is None:
-                continue
-            (release_date_obj, release_date) = self._get_release_date(item)
-            if release_date is None:
-                continue
-            if release_date_obj.date() <= limit_date.date():
-                items.append({
-                    'release_date': release_date,
-                    'title': item.findtext('ItemAttributes/Title'),
-                    'author': '/'.join(attr.text
-                        for attr in item.findall('ItemAttributes/Author')),
-                })
-        return items
 
-    def _lastmonth(self, now):
-        m = now.replace(day=1) - datetime.timedelta(days=1)
-        return m.strftime("%m-%Y")
+class ARssPreview(ABase):
 
-    def _get_release_date(self, item):
-        release_date = item.findtext('ItemAttributes/ReleaseDate')
-        if release_date is None:
-            release_date = item.findtext('ItemAttributes/PublicationDate')
-        for date_format in ["%Y-%m-%d", "%Y-%m"]:
-            try:
-                obj = datetime.datetime.strptime(release_date, date_format)
-            except ValueError:
-                pass
-            else:
-                return (obj, release_date)
-        return (None, None)
+    def get(self):
+        # password can be omitted
+        self.request.GET["password"] = "dummy"
+        form = RssForm(self.request.GET)
+        if not form.is_valid():
+            self.error(500)
+            self.response.out.write(form.errors)
+            return
+        data = form.clean_data
+        rssitem = RssItem(name=data["name"],
+                          title=data["title"],
+                          locale=data["locale"],
+                          days=data["days"],
+                          keywords=data["keywords"])
+        items = search(rssitem.keywords, rssitem.locale, rssitem.days)
+        template_values = {
+            "request": self.request,
+            "rssitem": rssitem,
+            "items": items,
+        }
+        self.response.headers["content-type"] = "application/atom+xml"
+        self.response.out.write(render("atom1.xml", template_values))
 
 
 application = webapp.WSGIApplication(
     [('/', AIndex),
      ('/rss/(.*)', ARss),
+     ('/rsspreview', ARssPreview),
     ],
     debug=config.debug)
 

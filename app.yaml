@@ -8,3 +8,5 @@ handlers:
   script: main.py
 - url: /rss/.*
   script: main.py
+- url: /rsspreview
+  script: main.py
