@@ -1,0 +1,4 @@
+debug = False
+AWS_ACCESS_KEY = ''
+AWS_SECRET_KEY = ''
+item_search_cache_time = 1 * 24 * 60 * 60 # 1 day

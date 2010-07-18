@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+<title>{{rssitem.title|escape}}</title>
+<link href="{{request.url|escape}}" />
+<updated>{% now "Y-m-d\TH:i:s\Z" %}</updated>
+<description>{{rssitem.keywords|escape}}</description>
+{% for item in items %}
+<entry>
+  <title><![CDATA[{{item.release_date}} {{item.title}} {{item.author}}]]></title>
+  <content type="text"><![CDATA[{{item.release_date}} {{item.title}} {{item.author}}]]></content>
+</entry>
+{% endfor %}
+</feed>
