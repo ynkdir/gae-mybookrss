@@ -7,3 +7,5 @@ server:
 update:
 	google_appengine/appcfg.py update .
 
+push:
+	git push origin master
