@@ -253,7 +253,8 @@ class ARss(ABase):
 class ARssPreview(ABase):
 
     def get(self):
-        # password can be omitted
+        # name and password can be omitted
+        self.request.GET["name"] = "dummy"
         self.request.GET["password"] = "dummy"
         form = RssForm(self.request.GET)
         if not form.is_valid():
