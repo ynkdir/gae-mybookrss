@@ -10,7 +10,10 @@ SALT_LENGTH = 8
 def ssha(password, salt=None):
     if salt is None:
         salt = generate_salt()
-    salted_password = hashlib.sha1(password).digest() + salt
+    sha1 = hashlib.sha1()
+    sha1.update(password)
+    sha1.update(salt)
+    salted_password = sha1.digest() + salt
     return base64.b64encode(salted_password)
 
 
