@@ -63,6 +63,8 @@ def item_search(locale, **params):
     params['ItemPage'] = 1
     while True:
         root = item_search_page(locale, params)
+        if root is None:
+            break
         for item in root.findall('Items/Item'):
             yield item
         total_pages = int(root.findtext('Items/TotalPages'))
@@ -79,8 +81,9 @@ def item_search_page(locale, params):
     try:
         root = client.request(params)
     except amazonaws.AWSError, e:
-        if e.code != 'AWS.ECommerceService.NoExactMatches':
-            raise
+        if e.code == 'AWS.ECommerceService.NoExactMatches':
+            return None
+        raise
     return root
 
 
