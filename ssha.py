@@ -4,6 +4,9 @@ import hashlib
 import random
 
 
+SALT_LENGTH = 8
+
+
 def ssha(password, salt=None):
     if salt is None:
         salt = generate_salt()
@@ -24,4 +27,4 @@ def find_salt(ssha_password):
 
 def generate_salt():
     chars = [chr(c) for c in range(256)]
-    return "".join(random.choice(chars) for i in range(8))
+    return "".join(random.choice(chars) for i in range(SALT_LENGTH))
