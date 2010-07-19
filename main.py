@@ -176,6 +176,13 @@ class RssForm(forms.Form):
     newpassword = forms.CharField(required=False)
 
 
+class RssPreviewForm(forms.Form):
+    title = forms.RegexField(re.compile(r"\S+"))
+    locale = forms.ChoiceField(LOCALE_UTC_OFFSET.items())
+    days = forms.IntegerField()
+    keywords = KeywordsField()
+
+
 class AIndex(ABase):
 
     def get(self):
@@ -256,17 +263,13 @@ class ARss(ABase):
 class ARssPreview(ABase):
 
     def get(self):
-        # name and password can be omitted
-        self.request.GET["name"] = "dummy"
-        self.request.GET["password"] = "dummy"
-        form = RssForm(self.request.GET)
+        form = RssPreviewForm(self.request.GET)
         if not form.is_valid():
             self.error(500)
             self.response.out.write(form.errors)
             return
         data = form.clean_data
-        rssitem = RssItem(name=data["name"],
-                          title=data["title"],
+        rssitem = RssItem(title=data["title"],
                           locale=data["locale"],
                           days=data["days"],
                           keywords=data["keywords"])

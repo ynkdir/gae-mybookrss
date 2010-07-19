@@ -32,16 +32,15 @@
     }
     function preview() {
       var form = document.getElementById("rssform");
-      form.action = "/rsspreview";
-      form.method = "GET";
-      form.target = "__blank";
-      form.submit();
+      var url = '/rsspreview'
+              + '?title=' + encodeURIComponent(form.title.value)
+              + '&locale=' + encodeURIComponent(form.locale.value)
+              + '&days=' + encodeURIComponent(form.days.value)
+              + '&keywords=' + encodeURIComponent(form.keywords.value);
+      window.open(url);
     }
     function save() {
       var form = document.getElementById("rssform");
-      form.action = "/";
-      form.method = "POST";
-      form.target = "";
       form.submit();
     }
   </script>
