@@ -136,7 +136,7 @@ def parse_keywords(keywords):
     words = []
     for word in keywords.splitlines():
         word = word.replace('"', '')
-        word = word.strip(" \t\r\n")
+        word = word.strip()
         if word != '':
             words.append(word)
     return words
