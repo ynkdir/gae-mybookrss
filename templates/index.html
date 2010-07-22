@@ -99,6 +99,7 @@ saved!
     <th>Notify before:</th>
     <td>
       <select name="days">
+        <option value="0" {% ifequal form.data.days "0" %}selected="selected"{% endifequal %}>0 days</option>
         <option value="1" {% ifequal form.data.days "1" %}selected="selected"{% endifequal %}>1 days</option>
         <option value="2" {% ifequal form.data.days "2" %}selected="selected"{% endifequal %}>2 days</option>
         <option value="3" {% ifequal form.data.days "3" %}selected="selected"{% endifequal %}>3 days</option>
