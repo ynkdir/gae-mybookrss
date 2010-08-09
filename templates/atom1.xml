@@ -7,7 +7,7 @@
 {% for item in items %}
 <entry>
   <title><![CDATA[{{item.release_date}} {{item.title}} {{item.author}}]]></title>
-  <content type="text"><![CDATA[{{item.release_date}} {{item.title}} {{item.author}}]]></content>
+  <content type="html"><![CDATA[{{item.release_date}} {{item.title}} {{item.author}}{% if item.medium_image %}<br /><img src="{{item.medium_image}}" />{% endif %}]]></content>
 </entry>
 {% endfor %}
 </feed>

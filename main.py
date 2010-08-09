@@ -112,6 +112,9 @@ def search(keywords, locale, days):
                 'title': item.findtext('ItemAttributes/Title'),
                 'author': '/'.join(attr.text
                     for attr in item.findall('ItemAttributes/Author')),
+                'large_image': item.findtext('LargeImage/URL'),
+                'medium_image': item.findtext('MediumImage/URL'),
+                'small_image': item.findtext('SmallImage/URL'),
             })
     return items
 
