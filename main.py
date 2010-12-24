@@ -3,7 +3,6 @@
 import datetime
 import logging
 import os.path
-import re
 
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
@@ -75,11 +74,10 @@ def item_search_page(locale, params):
 
 
 def search(keywords, locale, days):
-    keywords = " or ".join('"%s"' % word
-            for word in parse_keywords(keywords))
     utcnow = datetime.datetime.utcnow()
     now = utcnow + LOCALE_UTC_OFFSET[locale]
     limit_date = now + datetime.timedelta(days=days)
+    # keywords is injectable
     power = u"pubdate: after %s and keywords: %s" % (recentmonth(now), keywords)
     items = []
     for item in item_search(locale=locale,
@@ -125,16 +123,6 @@ def get_release_date(item):
     return (None, None)
 
 
-def parse_keywords(keywords):
-    words = []
-    for word in re.findall(r'"[^"]*"|\S+', keywords):
-        word = word.replace('"', '')
-        word = word.strip()
-        if word != '':
-            words.append(word)
-    return words
-
-
 class ABase(webapp.RequestHandler):
     def handle_exception(self, exception, debug_mode):
         if debug_mode:
@@ -148,8 +136,7 @@ class ABase(webapp.RequestHandler):
 class KeywordsField(forms.CharField):
     def clean(self, value):
         keywords = forms.CharField.clean(self, value)
-        words = parse_keywords(keywords)
-        if len(words) == 0:
+        if keywords.strip() == "":
             raise ValidationError(u'Enter a valid value')
         return keywords
 
