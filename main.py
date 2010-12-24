@@ -3,6 +3,7 @@
 import datetime
 import logging
 import os.path
+import re
 
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
@@ -126,7 +127,7 @@ def get_release_date(item):
 
 def parse_keywords(keywords):
     words = []
-    for word in keywords.splitlines():
+    for word in re.findall(r'"[^"]*"|\S+', keywords):
         word = word.replace('"', '')
         word = word.strip()
         if word != '':
