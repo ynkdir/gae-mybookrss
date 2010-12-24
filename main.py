@@ -3,21 +3,17 @@
 import datetime
 import logging
 import os.path
-import re
-import urllib
 
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
 from google.appengine.ext.webapp.util import run_wsgi_app
-from google.appengine.ext import db
 from google.appengine.api import memcache
 
 from django import newforms as forms
-from django.newforms.util import ErrorList, ValidationError
+from django.newforms.util import ValidationError
 
 import config
 import amazonaws
-import ssha
 
 
 LOCALE_UTC_OFFSET = {
@@ -28,16 +24,6 @@ LOCALE_UTC_OFFSET = {
     'uk': datetime.timedelta(),
     'us': datetime.timedelta(hours=-5),
 }
-
-
-class RssItem(db.Model):
-    name = db.StringProperty()
-    title = db.StringProperty()
-    locale = db.StringProperty(choices=LOCALE_UTC_OFFSET.keys())
-    days = db.IntegerProperty()
-    keywords = db.TextProperty()
-    password = db.StringProperty()
-    lastaccess = db.DateTimeProperty(auto_now=True)
 
 
 def dmemcache(time):
@@ -93,7 +79,7 @@ def search(keywords, locale, days):
     utcnow = datetime.datetime.utcnow()
     now = utcnow + LOCALE_UTC_OFFSET[locale]
     limit_date = now + datetime.timedelta(days=days)
-    power = u"pubdate: after %s and keywords: %s" % (lastmonth(now), keywords)
+    power = u"pubdate: after %s and keywords: %s" % (recentmonth(now), keywords)
     items = []
     for item in item_search(locale=locale,
                             SearchIndex='Books',
@@ -119,8 +105,8 @@ def search(keywords, locale, days):
     return items
 
 
-def lastmonth(now):
-    m = now.replace(day=1) - datetime.timedelta(days=1)
+def recentmonth(now):
+    m = now - datetime.timedelta(days=120)
     return m.strftime("%m-%Y")
 
 
@@ -149,7 +135,6 @@ def parse_keywords(keywords):
 
 
 class ABase(webapp.RequestHandler):
-
     def handle_exception(self, exception, debug_mode):
         if debug_mode:
             webapp.RequestHandler.handle_exception(self, exception, debug_mode)
@@ -160,7 +145,6 @@ class ABase(webapp.RequestHandler):
 
 
 class KeywordsField(forms.CharField):
-
     def clean(self, value):
         keywords = forms.CharField.clean(self, value)
         words = parse_keywords(keywords)
@@ -170,116 +154,30 @@ class KeywordsField(forms.CharField):
 
 
 class RssForm(forms.Form):
-    name = forms.RegexField(re.compile(r"\S+"))
-    title = forms.RegexField(re.compile(r"\S+"))
-    locale = forms.ChoiceField(LOCALE_UTC_OFFSET.items())
-    days = forms.IntegerField()
-    keywords = KeywordsField()
-    password = forms.RegexField(re.compile(r"\S+"))
-    newpassword = forms.CharField(required=False)
-
-
-class RssPreviewForm(forms.Form):
-    title = forms.RegexField(re.compile(r"\S+"))
     locale = forms.ChoiceField(LOCALE_UTC_OFFSET.items())
     days = forms.IntegerField()
     keywords = KeywordsField()
 
 
 class AIndex(ABase):
-
     def get(self):
-        name = self.request.get("name", None)
-        form = RssForm(self.request.GET)
-        rssitem = None
-        if name is not None:
-            rssitem = RssItem.get_by_key_name(name)
-            if rssitem is not None:
-                form = RssForm({
-                    "name": rssitem.name,
-                    "title": rssitem.title,
-                    "locale": rssitem.locale,
-                    "days": str(rssitem.days),
-                    "keywords": rssitem.keywords,
-                })
-        template_values = {
-            'request': self.request,
-            'form': form,
-            'rssitem': rssitem,
-        }
-        self.response.out.write(render("index.html", template_values))
-
-    def post(self):
-        form = RssForm(self.request.POST)
-        if form.is_valid():
-            data = form.clean_data
-            rssitem = RssItem.get_by_key_name(data["name"])
-            if (rssitem is not None
-                    and not ssha.equals(rssitem.password, data["password"])):
-                form.errors["password"] = ErrorList(
-                        ["Name is already used and Password is not matched"])
-            else:
-                if rssitem is None:
-                    rssitem = RssItem(key_name=data["name"])
-                rssitem.name = data["name"]
-                rssitem.title = data["title"]
-                rssitem.locale = data["locale"]
-                rssitem.days = data["days"]
-                rssitem.keywords = data["keywords"]
-                rssitem.password = ssha.ssha(data["password"])
-                if data["newpassword"] != "":
-                    rssitem.password = ssha.ssha(data["newpassword"])
-                rssitem.put()
-                self.redirect('/?' + urllib.urlencode({
-                    "name": data["name"].encode("utf-8"),
-                    "saved": "1",
-                }))
-                return
-        template_values = {
-            'request': self.request,
-            'form': form,
-        }
-        self.response.out.write(render("index.html", template_values))
+        self.response.out.write(render("index.html", {}))
 
 
 class ARss(ABase):
-
-    def get(self, name):
-        name = urllib.unquote_plus(name).decode("utf-8")
-        rssitem = RssItem.get_by_key_name(name)
-        if rssitem is None:
-            self.error(404)
-            self.response.out.write(u"404 Not Found")
-            return
-        # touch lastaccess
-        rssitem.put()
-        items = search(rssitem.keywords, rssitem.locale, rssitem.days)
-        template_values = {
-            "request": self.request,
-            "rssitem": rssitem,
-            "items": items,
-        }
-        self.response.headers["content-type"] = "application/atom+xml"
-        self.response.out.write(render("atom1.xml", template_values))
-
-
-class ARssPreview(ABase):
-
     def get(self):
-        form = RssPreviewForm(self.request.GET)
+        if "days" not in self.request.GET:
+            self.request.GET["days"] = "0"
+        form = RssForm(self.request.GET)
         if not form.is_valid():
             self.error(500)
             self.response.out.write(form.errors)
             return
         data = form.clean_data
-        rssitem = RssItem(title=data["title"],
-                          locale=data["locale"],
-                          days=data["days"],
-                          keywords=data["keywords"])
-        items = search(rssitem.keywords, rssitem.locale, rssitem.days)
+        items = search(data["keywords"], data["locale"], data["days"])
         template_values = {
             "request": self.request,
-            "rssitem": rssitem,
+            "data": data,
             "items": items,
         }
         self.response.headers["content-type"] = "application/atom+xml"
@@ -288,8 +186,7 @@ class ARssPreview(ABase):
 
 application = webapp.WSGIApplication(
     [('/', AIndex),
-     ('/rss/(.*)', ARss),
-     ('/rsspreview', ARssPreview),
+     ('/rss', ARss),
     ],
     debug=config.debug)
 

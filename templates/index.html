@@ -1,143 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>mybookrss</title>
-  <style>
-    th {
-      text-align: right;
-      vertical-align: top;
-    }
-    textarea {
-      float: left;
-    }
-    .hint {
-      color: silver;
-    }
-    .errorlist {
-      color: red;
-    }
-    .success {
-      color: green;
-      font-size: xx-large;
-      font-weight: bold;
-    }
-  </style>
-  <script>
-    function load() {
-      var form = document.getElementById("rssform");
-      var name = form.name.value;
-      if (!name.match(/^\s*$/)) {
-        location.href = "/?name=" + encodeURIComponent(name);
-      }
-    }
-    function preview() {
-      var form = document.getElementById("rssform");
-      var url = '/rsspreview'
-              + '?title=' + encodeURIComponent(form.title.value)
-              + '&locale=' + encodeURIComponent(form.locale.value)
-              + '&days=' + encodeURIComponent(form.days.value)
-              + '&keywords=' + encodeURIComponent(form.keywords.value);
-      window.open(url);
-    }
-    function save() {
-      var form = document.getElementById("rssform");
-      form.submit();
-    }
-  </script>
+  <title>mybookrss: release reminder</title>
 </head>
 <body>
-<h1>mybookrss: rss feed for new books you want</h1>
-{% ifequal request.method "POST" %}{{form.errors}}{% endifequal %}
-{% if request.GET.saved %}
-<div class="success">
-saved!
-</div>
-{% endif %}
-{% if request.GET.name %}
-  {% if rssitem %}
-    <a href="{{request.host_url}}/rss/{{request.GET.name|escape}}">{{request.host_url}}/rss/{{request.GET.name|escape}}</a>
-  {% else %}
-    <ul class="errorlist">
-      <li>
-        "{{request.GET.name|escape}}" is not found.
-        You can create it.
-      </li>
-    </ul>
-  {% endif %}
-{% endif %}
-<form id="rssform" method="POST" action="/">
-  <table>
-  <tr>
-    <th>Name:</th>
-    <td>
-      {{request.host_url}}/rss/<input name="name" type="text" value="{{form.data.name|escape}}" />
-      <input type="button" value="Load" onclick="load()" />
-    </td>
-  </tr>
-  <tr>
-    <th>Title:</th>
-    <td>
-      <input name="title" type="text" value="{{form.data.title|default_if_none:""|escape}}" />
-      <span class="hint">Rss's title.</span>
-    </td>
-  </tr>
-  <tr>
-    <th>Locale:</th>
-    <td>
-      <select name="locale">
-        <option value="ca" {% ifequal form.data.locale "ca" %}selected="selected"{% endifequal %}>ca (www.amazon.ca)</option>
-        <option value="de" {% ifequal form.data.locale "de" %}selected="selected"{% endifequal %}>de (www.amazon.de)</option>
-        <option value="fr" {% ifequal form.data.locale "fr" %}selected="selected"{% endifequal %}>fr (www.amazon.fr)</option>
-        <option value="jp" {% ifequal form.data.locale "jp" %}selected="selected"{% endifequal %}>jp (www.amazon.co.jp)</option>
-        <option value="uk" {% ifequal form.data.locale "uk" %}selected="selected"{% endifequal %}>uk (www.amazon.co.uk)</option>
-        <option value="us" {% ifequal form.data.locale "us" %}selected="selected"{% endifequal %}>us (www.amazon.com)</option>
-      </select>
-      <span class="hint">Amazon server where the book is searched.</span>
-    </td>
-  </tr>
-  <tr>
-    <th>Notify before:</th>
-    <td>
-      <select name="days">
-        <option value="0" {% ifequal form.data.days "0" %}selected="selected"{% endifequal %}>0 days</option>
-        <option value="1" {% ifequal form.data.days "1" %}selected="selected"{% endifequal %}>1 days</option>
-        <option value="2" {% ifequal form.data.days "2" %}selected="selected"{% endifequal %}>2 days</option>
-        <option value="3" {% ifequal form.data.days "3" %}selected="selected"{% endifequal %}>3 days</option>
-        <option value="7" {% ifequal form.data.days "7" %}selected="selected"{% endifequal %}>7 days</option>
-        <option value="30" {% ifequal form.data.days "30" %}selected="selected"{% endifequal %}>30 days</option>
-      </select>
-    </td>
-  </tr>
-  <tr>
-    <th>Search keywords:</th>
-    <td>
-      <textarea name="keywords" rows="10">{{form.data.keywords|default_if_none:""|escape}}</textarea>
-      <div class="hint">
-        One keyword per line.<br />
-        The word which matches too many books may cause a timeout error.
-      </div>
-    </td>
-  </tr>
-  <tr>
-    <th>Password:</th>
-    <td>
-      <input name="password" type="password" />
-      <span class="hint">
-        Required to update later.
-      </span>
-    </td>
-  </tr>
-  <tr>
-    <th>New Password:</th>
-    <td>
-      <input name="newpassword" type="password" />
-      <span class="hint">
-        If set, password is changed.
-      </span>
-    </td>
-  </table>
-  <input type="button" value="Preview" onclick="preview()" />
-  <input type="button" value="Save" onclick="save()" />
+<form id="rssform" method="GET" action="/rss">
+  <label>Keywords:</label><input name="keywords" />
+  <select id="locale" name="locale">
+    <option value="ca">ca (www.amazon.ca)</option>
+    <option value="de">de (www.amazon.de)</option>
+    <option value="fr">fr (www.amazon.fr)</option>
+    <option value="jp">jp (www.amazon.co.jp)</option>
+    <option value="uk">uk (www.amazon.co.uk)</option>
+    <option value="us">us (www.amazon.com)</option>
+  </select>
+  <input type="submit" value="Rss" />
 </form>
 </body>
 </html>
