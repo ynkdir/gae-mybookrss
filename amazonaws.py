@@ -12,6 +12,7 @@ import datetime
 import hashlib
 import hmac
 import urllib
+import urllib2
 from xml.etree import ElementTree
 
 
@@ -87,7 +88,7 @@ class Client(object):
     def request(self, params):
         params['Service'] = self.SERVICE
         url = self.sign(params)
-        xml = urllib.urlopen(url).read()
+        xml = urllib2.urlopen(url).read()
         # XXX: ignore namespace for convenience
         xml = xml.replace("xmlns", "xmlns:ignore")
         root = ElementTree.fromstring(xml)
