@@ -84,7 +84,8 @@ def search(keywords, locale, days):
                             SearchIndex='Books',
                             Power=power.encode("utf-8"),
                             Sort='daterank',
-                            ResponseGroup='Medium'):
+                            ResponseGroup='Medium',
+                            AssociateTag=config.AWS_ASSOCIATE_TAG):
         # ignore collection item
         if item.find('ItemAttributes/ISBN') is None:
             continue
