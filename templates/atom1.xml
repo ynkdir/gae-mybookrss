@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
 <title>{{data.keywords|escape}}</title>
 <link href="{{request.url|escape}}" />
-<updated>{% now "Y-m-d\TH:i:s\Z" %}</updated>
+<updated>{{data.updated}}</updated>
 <description>{{data.keywords|escape}}</description>
 {% for item in items %}
 <entry>

@@ -3,14 +3,12 @@
 import datetime
 import logging
 import os.path
+import time
 
-from google.appengine.ext import webapp
-from google.appengine.ext.webapp import template
-from google.appengine.ext.webapp.util import run_wsgi_app
+import webapp2
 from google.appengine.api import memcache
 
-from django import newforms as forms
-from django.newforms.util import ValidationError
+from jinja2 import Template
 
 import config
 import amazonaws
@@ -41,7 +39,8 @@ def dmemcache(time):
 
 def render(template_file, template_values):
     path = os.path.join(os.path.dirname(__file__), "templates", template_file)
-    return template.render(path, template_values)
+    with open(path) as f:
+        return Template(f.read()).render(template_values)
 
 
 def item_search(locale, **params):
@@ -124,28 +123,14 @@ def get_release_date(item):
     return (None, None)
 
 
-class ABase(webapp.RequestHandler):
+class ABase(webapp2.RequestHandler):
     def handle_exception(self, exception, debug_mode):
         if debug_mode:
-            webapp.RequestHandler.handle_exception(self, exception, debug_mode)
+            webapp2.RequestHandler.handle_exception(self, exception, debug_mode)
         else:
             logging.exception(exception)
             self.error(500)
             self.response.out.write(exception)
-
-
-class KeywordsField(forms.CharField):
-    def clean(self, value):
-        keywords = forms.CharField.clean(self, value)
-        if keywords.strip() == "":
-            raise ValidationError(u'Enter a valid value')
-        return keywords
-
-
-class RssForm(forms.Form):
-    locale = forms.ChoiceField(LOCALE_UTC_OFFSET.items())
-    days = forms.IntegerField()
-    keywords = KeywordsField()
 
 
 class AIndex(ABase):
@@ -157,12 +142,11 @@ class ARss(ABase):
     def get(self):
         if "days" not in self.request.GET:
             self.request.GET["days"] = "0"
-        form = RssForm(self.request.GET)
-        if not form.is_valid():
-            self.error(500)
-            self.response.out.write(form.errors)
-            return
-        data = form.clean_data
+        data = {}
+        data["keywords"] = self.request.GET["keywords"]
+        data["locale"] = self.request.GET["locale"]
+        data["days"] = int(self.request.GET["days"])
+        data["updated"] = time.strftime("%Y-%m-%dT%H:%M:%SZ")
         items = search(data["keywords"], data["locale"], data["days"])
         template_values = {
             "request": self.request,
@@ -173,15 +157,8 @@ class ARss(ABase):
         self.response.out.write(render("atom1.xml", template_values))
 
 
-application = webapp.WSGIApplication(
+app = webapp2.WSGIApplication(
     [('/', AIndex),
      ('/rss', ARss),
     ],
     debug=config.debug)
-
-
-def main():
-    run_wsgi_app(application)
-
-if __name__ == "__main__":
-    main()
